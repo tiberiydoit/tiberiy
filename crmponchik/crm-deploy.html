@@ -1,1 +1,579 @@
-d
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>CRM @t1beriy</title>
+</head>
+<body>
+<style>
+  :root {
+    --bg: #0E0E11; --surface: #18181C; --surface2: #1F1F25; --border: #2A2A32;
+    --text: #F5F5F0; --muted: #9C9CA6; --accent: #FFD60A; --accent-dark: #B89B00;
+    --new: #5B8DEF; --think: #E8A33D; --hot: #F25C3D; --won: #4CC38A; --arch: #6E6E78;
+    --danger: #F25C3D;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; min-height: 100vh; }
+  .app { max-width: 1280px; margin: 0 auto; padding: 16px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 8px 0 16px; }
+  .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+  .logo span { color: var(--accent); }
+  .stats { display: flex; gap: 8px; flex-wrap: wrap; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px 14px; font-size: 13px; color: var(--muted); }
+  .stat b { color: var(--text); font-weight: 700; margin-right: 4px; }
+  .stat.alert b { color: var(--danger); }
+  .stat.hot b { color: var(--hot); }
+
+  .followup-bar { background: var(--surface); border: 1px solid var(--accent-dark); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: none; }
+  .followup-bar.show { display: block; }
+  .followup-bar h3 { font-size: 13px; color: var(--accent); font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .followup-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fu-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 13px; cursor: pointer; transition: border-color 0.15s; }
+  .fu-chip:hover { border-color: var(--accent); }
+  .fu-chip.overdue { border-color: var(--danger); color: #FFB3A3; }
+
+  .toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .toolbar input[type=text] { flex: 1; min-width: 180px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; }
+  .toolbar input[type=text]:focus { border-color: var(--accent); }
+  .btn-add { background: var(--accent); color: #111; border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn-add:active { transform: scale(0.97); }
+
+  .board { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 16px; scroll-snap-type: x proximity; }
+  .col { flex: 0 0 270px; scroll-snap-align: start; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; max-height: 75vh; }
+  .col-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; }
+  .col-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 7px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .col-count { font-size: 12px; color: var(--muted); background: var(--surface2); border-radius: 10px; padding: 2px 8px; }
+  .col-body { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+  .col-body.dragover { outline: 2px dashed var(--accent); outline-offset: -4px; border-radius: 10px; }
+
+  .card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; cursor: grab; }
+  .card.overdue { border-color: var(--danger); }
+  .card.today { border-color: var(--accent-dark); }
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .nick { font-weight: 700; font-size: 14px; color: var(--text); text-decoration: none; }
+  .nick:hover { color: var(--accent); }
+  .card-actions { display: flex; gap: 2px; }
+  .icon-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 3px 5px; border-radius: 6px; }
+  .icon-btn:hover { background: var(--surface); color: var(--text); }
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+  .meta { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+  .badge.fu { color: var(--text); }
+  .badge.fu.overdue { background: rgba(242,92,61,0.15); border-color: var(--danger); color: #FFB3A3; }
+  .badge.fu.today { background: rgba(255,214,10,0.12); border-color: var(--accent-dark); color: var(--accent); }
+  .move-row { display: flex; gap: 4px; margin-top: 8px; }
+  .move-btn { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 12px; padding: 5px 0; cursor: pointer; }
+  .move-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .empty { color: var(--muted); font-size: 12.5px; text-align: center; padding: 16px 8px; }
+
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .overlay.show { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; width: 100%; max-width: 420px; }
+  .modal h2 { font-size: 17px; margin-bottom: 14px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 600; }
+  .field input, .field select, .field textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 14px; outline: none; font-family: inherit; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+  .btn-primary { flex: 1; background: var(--accent); color: #111; border: none; border-radius: 10px; padding: 11px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn-ghost { flex: 1; background: none; border: 1px solid var(--border); border-radius: 10px; padding: 11px; font-size: 14px; color: var(--muted); cursor: pointer; }
+  .btn-danger-link { background: none; border: none; color: var(--danger); font-size: 13px; cursor: pointer; margin-top: 12px; width: 100%; text-align: center; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--surface2); border: 1px solid var(--accent-dark); color: var(--text); border-radius: 12px; padding: 10px 18px; font-size: 13px; z-index: 60; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tab { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
+  .tab.active { background: var(--accent); color: #111; border-color: var(--accent); }
+  .tab .cnt { font-weight: 400; opacity: 0.7; margin-left: 4px; }
+
+  .outreach { display: none; }
+  .outreach.show { display: block; }
+  .or-paste { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .or-paste label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  .or-paste textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 14px; min-height: 64px; resize: vertical; outline: none; font-family: inherit; }
+  .or-paste textarea:focus { border-color: var(--accent); }
+  .or-paste-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap; }
+  .or-hint { font-size: 12px; color: var(--muted); }
+  .or-stats { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .or-list { display: flex; flex-direction: column; gap: 6px; }
+  .or-row { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
+  .or-row.replied-dup { opacity: 0.5; }
+  .or-nick { font-weight: 600; font-size: 14px; color: var(--text); text-decoration: none; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .or-nick:hover { color: var(--accent); }
+  .or-date { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .or-reply-btn { background: var(--surface2); border: 1px solid var(--accent-dark); border-radius: 8px; color: var(--accent); font-size: 12px; font-weight: 700; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
+  .or-reply-btn:hover { background: var(--accent); color: #111; }
+  .or-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 2px 6px; }
+  .or-del:hover { color: var(--danger); }
+  .or-day-head { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 12px 0 4px; }
+
+  @media (max-width: 640px) {
+    .col { flex: 0 0 82vw; }
+    .stats { width: 100%; }
+  }
+</style>
+
+<div class="app">
+  <header>
+    <div class="logo">CRM <span>@t1beriy</span></div>
+    <div class="stats">
+      <div class="stat"><b id="st-total">0</b>всього</div>
+      <div class="stat hot"><b id="st-hot">0</b>гарячих</div>
+      <div class="stat alert"><b id="st-overdue">0</b>прострочено</div>
+      <div class="stat"><b id="st-won">0</b>закрито</div>
+      <button class="stat" id="btn-export" style="cursor:pointer">⬇ Бекап</button>
+      <button class="stat" id="btn-import" style="cursor:pointer">⬆ Відновити</button>
+      <input type="file" id="import-file" accept=".json" style="display:none">
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-board">Воронка</button>
+    <button class="tab" id="tab-outreach">Аутріч <span class="cnt" id="or-count"></span></button>
+  </div>
+
+  <div id="view-board">
+  <div class="followup-bar" id="fu-bar">
+    <h3>⚡ Написати сьогодні</h3>
+    <div class="followup-chips" id="fu-chips"></div>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Пошук по ніку чи нотатці...">
+    <button class="btn-add" id="btn-add">+ Додати ліда</button>
+  </div>
+
+  <div class="board" id="board"></div>
+  </div>
+
+  <div class="outreach" id="view-outreach">
+    <div class="or-stats">
+      <div class="stat"><b id="or-today">0</b>написано сьогодні</div>
+      <div class="stat"><b id="or-week">0</b>за 7 днів</div>
+      <div class="stat"><b id="or-replied">0</b>відповіли (всього)</div>
+      <div class="stat"><b id="or-rate">0%</b>reply rate</div>
+    </div>
+    <div class="or-paste">
+      <label>Встав ніки, кому написав сьогодні (через кому, пробіл або з нового рядка)</label>
+      <textarea id="or-input" placeholder="ivan_fit, max.power
+@sergey_gym"></textarea>
+      <div class="or-paste-row">
+        <button class="btn-add" id="or-add">Додати в лог</button>
+        <span class="or-hint">Дублікати пропускаються автоматично</span>
+      </div>
+    </div>
+    <input type="text" id="or-search" placeholder="Пошук по ніку..." style="width:100%; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-size:14px; outline:none; margin-bottom:6px;">
+    <div class="or-list" id="or-list"></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modal-title">Новий лід</h2>
+    <div class="field">
+      <label>Нік в Instagram</label>
+      <input type="text" id="f-nick" placeholder="ivan_fit (без @)">
+    </div>
+    <div class="field">
+      <label>Стадія</label>
+      <select id="f-stage"></select>
+    </div>
+    <div class="field">
+      <label>Follow-up (коли написати)</label>
+      <input type="date" id="f-date">
+    </div>
+    <div class="field">
+      <label>Нотатка (що казав, заперечення, контекст)</label>
+      <textarea id="f-note" placeholder="Хоче схуднути до літа. Сказав 'дорого', запропонував розстрочку — думає до п'ятниці."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-ghost" id="btn-cancel">Скасувати</button>
+      <button class="btn-primary" id="btn-save">Зберегти</button>
+    </div>
+    <button class="btn-danger-link" id="btn-delete" style="display:none">Видалити ліда</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STAGES = [
+  { id: 'new',   name: 'Новий',            color: 'var(--new)' },
+  { id: 'think', name: 'Думає',            color: 'var(--think)' },
+  { id: 'hot',   name: 'Близько до закриття', color: 'var(--hot)' },
+  { id: 'won',   name: 'Клієнт',           color: 'var(--won)' },
+  { id: 'arch',  name: 'Архів',            color: 'var(--arch)' }
+];
+const KEY = 'crm-leads-v1';
+const OKEY = 'crm-outreach-v1';
+let leads = [];
+let outreach = [];
+let editId = null;
+let saveTimer = null;
+let oSaveTimer = null;
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+}
+function fuClass(d) {
+  if (!d) return '';
+  const t = todayStr();
+  if (d < t) return 'overdue';
+  if (d === t) return 'today';
+  return '';
+}
+function daysAgo(iso) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (days === 0) return 'сьогодні';
+  if (days === 1) return 'вчора';
+  return days + ' дн.';
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+async function load() {
+  try {
+    const v = localStorage.getItem(KEY);
+    if (v) leads = JSON.parse(v);
+  } catch (e) { leads = []; }
+  try {
+    const ov = localStorage.getItem(OKEY);
+    if (ov) outreach = JSON.parse(ov);
+  } catch (e) { outreach = []; }
+  render();
+  renderOutreach();
+}
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 400);
+}
+async function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(leads));
+  } catch (e) { toast('⚠️ Помилка збереження — спробуй ще раз'); }
+}
+function scheduleOSave() {
+  clearTimeout(oSaveTimer);
+  oSaveTimer = setTimeout(async () => {
+    try {
+      localStorage.setItem(OKEY, JSON.stringify(outreach));
+    } catch (e) { toast('⚠️ Помилка збереження — спробуй ще раз'); }
+  }, 400);
+}
+
+function render() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  const t = todayStr();
+
+  STAGES.forEach((stage, si) => {
+    const items = leads
+      .filter(l => l.stage === stage.id)
+      .filter(l => !q || l.nick.toLowerCase().includes(q) || (l.note || '').toLowerCase().includes(q))
+      .sort((a, b) => (a.fu || '9999') < (b.fu || '9999') ? -1 : 1);
+
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.innerHTML = `
+      <div class="col-head">
+        <div class="col-title"><span class="dot" style="background:${stage.color}"></span>${stage.name}</div>
+        <div class="col-count">${items.length}</div>
+      </div>
+      <div class="col-body" data-stage="${stage.id}"></div>`;
+    const body = col.querySelector('.col-body');
+
+    body.addEventListener('dragover', e => { e.preventDefault(); body.classList.add('dragover'); });
+    body.addEventListener('dragleave', () => body.classList.remove('dragover'));
+    body.addEventListener('drop', e => {
+      e.preventDefault();
+      body.classList.remove('dragover');
+      const id = e.dataTransfer.getData('text/plain');
+      moveTo(id, stage.id);
+    });
+
+    if (!items.length) {
+      body.innerHTML = '<div class="empty">Пусто</div>';
+    }
+    items.forEach(l => {
+      const fc = fuClass(l.fu);
+      const card = document.createElement('div');
+      card.className = 'card ' + fc;
+      card.draggable = true;
+      card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', l.id));
+      card.innerHTML = `
+        <div class="card-top">
+          <a class="nick" href="https://instagram.com/${esc(l.nick)}" target="_blank" rel="noopener">@${esc(l.nick)}</a>
+          <div class="card-actions">
+            <button class="icon-btn" title="Редагувати" data-edit="${l.id}">✏️</button>
+          </div>
+        </div>
+        ${l.note ? `<div class="note">${esc(l.note)}</div>` : ''}
+        <div class="meta">
+          ${l.fu ? `<span class="badge fu ${fc}">📅 ${fc === 'overdue' ? 'Прострочено · ' : fc === 'today' ? 'Сьогодні · ' : ''}${fmtDate(l.fu)}</span>` : ''}
+          <span class="badge">додано ${daysAgo(l.created)}</span>
+        </div>
+        <div class="move-row">
+          ${si > 0 ? `<button class="move-btn" data-move="${l.id}" data-to="${STAGES[si-1].id}">← ${STAGES[si-1].name}</button>` : ''}
+          ${si < STAGES.length - 1 ? `<button class="move-btn" data-move="${l.id}" data-to="${STAGES[si+1].id}">${STAGES[si+1].name} →</button>` : ''}
+        </div>`;
+      body.appendChild(card);
+    });
+    board.appendChild(col);
+  });
+
+  board.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openModal(b.dataset.edit)));
+  board.querySelectorAll('[data-move]').forEach(b => b.addEventListener('click', () => moveTo(b.dataset.move, b.dataset.to)));
+
+  document.getElementById('st-total').textContent = leads.filter(l => l.stage !== 'arch').length;
+  document.getElementById('st-hot').textContent = leads.filter(l => l.stage === 'hot').length;
+  document.getElementById('st-won').textContent = leads.filter(l => l.stage === 'won').length;
+  const due = leads.filter(l => l.fu && l.fu <= t && l.stage !== 'won' && l.stage !== 'arch');
+  document.getElementById('st-overdue').textContent = due.filter(l => l.fu < t).length;
+
+  const bar = document.getElementById('fu-bar');
+  const chips = document.getElementById('fu-chips');
+  if (due.length) {
+    bar.classList.add('show');
+    chips.innerHTML = '';
+    due.sort((a, b) => a.fu < b.fu ? -1 : 1).forEach(l => {
+      const c = document.createElement('div');
+      c.className = 'fu-chip' + (l.fu < t ? ' overdue' : '');
+      c.textContent = '@' + l.nick + (l.fu < t ? ' ⏰' : '');
+      c.addEventListener('click', () => openModal(l.id));
+      chips.appendChild(c);
+    });
+  } else {
+    bar.classList.remove('show');
+  }
+}
+
+function moveTo(id, stageId) {
+  const l = leads.find(x => x.id === id);
+  if (!l || l.stage === stageId) return;
+  l.stage = stageId;
+  if (stageId === 'won') { l.fu = ''; toast('🎉 Клієнт закритий!'); }
+  scheduleSave();
+  render();
+}
+
+const stageSel = document.getElementById('f-stage');
+STAGES.forEach(s => {
+  const o = document.createElement('option');
+  o.value = s.id; o.textContent = s.name;
+  stageSel.appendChild(o);
+});
+
+function openModal(id) {
+  editId = id || null;
+  document.getElementById('modal-title').textContent = id ? 'Редагувати ліда' : 'Новий лід';
+  document.getElementById('btn-delete').style.display = id ? 'block' : 'none';
+  const l = id ? leads.find(x => x.id === id) : null;
+  document.getElementById('f-nick').value = l ? l.nick : '';
+  document.getElementById('f-stage').value = l ? l.stage : 'new';
+  document.getElementById('f-date').value = l ? (l.fu || '') : '';
+  document.getElementById('f-note').value = l ? (l.note || '') : '';
+  document.getElementById('overlay').classList.add('show');
+  if (!id) document.getElementById('f-nick').focus();
+}
+function closeModal() { document.getElementById('overlay').classList.remove('show'); }
+
+document.getElementById('btn-add').addEventListener('click', () => openModal(null));
+document.getElementById('btn-cancel').addEventListener('click', closeModal);
+document.getElementById('overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
+
+document.getElementById('btn-save').addEventListener('click', () => {
+  const nick = document.getElementById('f-nick').value.trim().replace(/^@/, '');
+  if (!nick) { toast('Вкажи нік'); return; }
+  const data = {
+    nick,
+    stage: document.getElementById('f-stage').value,
+    fu: document.getElementById('f-date').value,
+    note: document.getElementById('f-note').value.trim()
+  };
+  if (editId) {
+    Object.assign(leads.find(x => x.id === editId), data);
+    toast('Збережено');
+  } else {
+    leads.push({ id: 'l' + Date.now() + Math.random().toString(36).slice(2, 6), created: new Date().toISOString(), ...data });
+    toast('Лід доданий');
+  }
+  scheduleSave();
+  closeModal();
+  render();
+});
+
+document.getElementById('btn-delete').addEventListener('click', () => {
+  if (!editId) return;
+  if (!confirm('Точно видалити?')) return;
+  leads = leads.filter(x => x.id !== editId);
+  scheduleSave();
+  closeModal();
+  render();
+});
+
+document.getElementById('search').addEventListener('input', render);
+
+const tabBoard = document.getElementById('tab-board');
+const tabOr = document.getElementById('tab-outreach');
+function switchTab(toOutreach) {
+  tabBoard.classList.toggle('active', !toOutreach);
+  tabOr.classList.toggle('active', toOutreach);
+  document.getElementById('view-board').style.display = toOutreach ? 'none' : 'block';
+  document.getElementById('view-outreach').classList.toggle('show', toOutreach);
+}
+tabBoard.addEventListener('click', () => switchTab(false));
+tabOr.addEventListener('click', () => switchTab(true));
+
+function parseNicks(raw) {
+  return [...new Set(
+    raw.split(/[\s,;\n]+/)
+      .map(s => s.trim().replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/[\/?].*$/, ''))
+      .filter(s => s && /^[\w.]{1,30}$/.test(s))
+      .map(s => s.toLowerCase())
+  )];
+}
+
+document.getElementById('or-add').addEventListener('click', () => {
+  const raw = document.getElementById('or-input').value;
+  const nicks = parseNicks(raw);
+  if (!nicks.length) { toast('Не бачу жодного ніка'); return; }
+  const existing = new Set(outreach.map(o => o.nick));
+  const t = todayStr();
+  let added = 0;
+  nicks.forEach(n => {
+    if (!existing.has(n)) {
+      outreach.push({ id: 'o' + Date.now() + Math.random().toString(36).slice(2, 6), nick: n, date: t });
+      existing.add(n);
+      added++;
+    }
+  });
+  document.getElementById('or-input').value = '';
+  scheduleOSave();
+  renderOutreach();
+  toast(added ? `✅ Додано ${added}` + (nicks.length - added ? `, пропущено дублікатів: ${nicks.length - added}` : '') : 'Всі вже в лозі');
+});
+
+function promote(oid) {
+  const o = outreach.find(x => x.id === oid);
+  if (!o) return;
+  const dup = leads.find(l => l.nick.toLowerCase() === o.nick);
+  if (!dup) {
+    const d = new Date(o.date + 'T00:00:00');
+    leads.push({
+      id: 'l' + Date.now() + Math.random().toString(36).slice(2, 6),
+      created: new Date().toISOString(),
+      nick: o.nick, stage: 'new', fu: todayStr(),
+      note: 'З аутрічу ' + d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })
+    });
+    scheduleSave();
+  }
+  o.replied = true;
+  scheduleOSave();
+  render();
+  renderOutreach();
+  toast(dup ? '@' + o.nick + ' вже у воронці' : '🔥 @' + o.nick + ' → у воронку');
+}
+
+function delOutreach(oid) {
+  outreach = outreach.filter(x => x.id !== oid);
+  scheduleOSave();
+  renderOutreach();
+}
+
+function renderOutreach() {
+  const t = todayStr();
+  const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
+  document.getElementById('or-today').textContent = outreach.filter(o => o.date === t).length;
+  document.getElementById('or-week').textContent = outreach.filter(o => o.date >= weekAgo).length;
+  const replied = outreach.filter(o => o.replied).length;
+  document.getElementById('or-replied').textContent = replied;
+  document.getElementById('or-rate').textContent = outreach.length ? Math.round(replied / outreach.length * 100) + '%' : '0%';
+  document.getElementById('or-count').textContent = outreach.length ? '(' + outreach.length + ')' : '';
+
+  const q = (document.getElementById('or-search').value || '').trim().toLowerCase();
+  const list = document.getElementById('or-list');
+  list.innerHTML = '';
+  const items = outreach
+    .filter(o => !q || o.nick.includes(q))
+    .sort((a, b) => b.date < a.date ? -1 : b.date > a.date ? 1 : 0);
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">Лог пустий — встав список ніків зверху після сесії аутрічу</div>';
+    return;
+  }
+  let lastDay = '';
+  items.forEach(o => {
+    if (o.date !== lastDay) {
+      lastDay = o.date;
+      const h = document.createElement('div');
+      h.className = 'or-day-head';
+      const dt = new Date(o.date + 'T00:00:00');
+      h.textContent = (o.date === t ? 'Сьогодні · ' : '') + dt.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+      list.appendChild(h);
+    }
+    const row = document.createElement('div');
+    row.className = 'or-row' + (o.replied ? ' replied-dup' : '');
+    row.innerHTML = `
+      <a class="or-nick" href="https://instagram.com/${esc(o.nick)}" target="_blank" rel="noopener">@${esc(o.nick)}</a>
+      ${o.replied ? '<span class="or-date">✅ у воронці</span>' : `<button class="or-reply-btn" data-promote="${o.id}">Відповів →</button>`}
+      <button class="or-del" data-odel="${o.id}" title="Видалити">✕</button>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('[data-promote]').forEach(b => b.addEventListener('click', () => promote(b.dataset.promote)));
+  list.querySelectorAll('[data-odel]').forEach(b => b.addEventListener('click', () => delOutreach(b.dataset.odel)));
+}
+document.getElementById('or-search').addEventListener('input', renderOutreach);
+
+document.getElementById('btn-export').addEventListener('click', () => {
+  const data = JSON.stringify({ leads, outreach, exported: new Date().toISOString() }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'crm-backup-' + todayStr() + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('💾 Бекап завантажено');
+});
+
+document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
+document.getElementById('import-file').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const data = JSON.parse(r.result);
+      if (!Array.isArray(data.leads)) throw new Error('bad');
+      if (!confirm('Замінити поточні дані даними з бекапу?')) return;
+      leads = data.leads;
+      outreach = Array.isArray(data.outreach) ? data.outreach : [];
+      scheduleSave(); scheduleOSave();
+      render(); renderOutreach();
+      toast('✅ Дані відновлено');
+    } catch (err) { toast('⚠️ Файл не схожий на бекап CRM'); }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+});
+
+load();
+</script>
+
+</body>
+</html>
